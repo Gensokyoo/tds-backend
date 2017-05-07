@@ -1,5 +1,5 @@
-// import * as socketio from 'socket.io';
 import * as Koa from 'koa';
+import {Context} from 'koa';
 import * as IO from 'koa-socket';
 import * as shortid from 'shortid';
 
@@ -11,15 +11,6 @@ class Queue {
     Object.assign(this, queue);
   }
 }
-
-// class Lobby {
-//   socket: SocketIO.Namespace;
-//   players: number;
-//
-//   constructor(lobby: Lobby) {
-//     Object.assign(this, lobby);
-//   }
-// }
 
 class Room {
   socket: SocketIO.Namespace;
@@ -34,7 +25,6 @@ class Player {
   id: string;
   x: number;
   z: number;
-  status: string;
 
   constructor(player: Player) {
     Object.assign(this, player);
@@ -65,13 +55,27 @@ for (let i = 0; i < MAX; i++) {
   let room = new IO(`room:${i}`);
   room.attach(app);
 
-  room.on('connection', (ctx, data) => {
+  room.on('connection', (ctx: Context, data) => {
+    let currentPlayer = '';
 
     rooms[i].players++;
 
-    console.log(`some one connected room ${i}. There are ${rooms[i].players} people in the room`);
 
-    ctx.socket.emit("request:data")
+    ctx.socket.emit('joinRoom');
+    ctx.socket.on('joinRoom', data => {
+      console.log(data);
+      currentPlayer = data;
+      console.log(`some one connected room ${i}. There are ${rooms[i].players} people in the room`);
+    });
+
+    // room.broadcast("spawn", {id: })
+    ctx.socket.emit('requestPosition');
+
+    ctx.socket.on('updatePosition', data => {
+      console.log(data);
+      room.broadcast('move', data);
+    });
+
 
     ctx.socket.on('disconnect', () => {
       rooms[i].players--;
@@ -93,12 +97,13 @@ io.on('connection', (ctx, data) => {
   const player = new Player({
     id: thisPlayerId,
     x: 0,
-    z: 0,
-    status: 'init'
+    z: 0
   });
 
   players.set(thisPlayerId, player);
   console.log(`${thisPlayerId} connected lobby . There are ${players.size} people in the lobby`);
+
+  ctx.socket.emit('connectSuccess', player);
 
   ctx.socket.on('disconnect', () => {
     console.log(`player disconnect lobby: ${thisPlayerId}`);
@@ -116,14 +121,10 @@ queue.socket.on('connection', (ctx, data) => {
   let roomID = getFreeRoom();
 
   if (roomID >= 0) {
-    ctx.socket.emit(`match:success`, {
+    ctx.socket.emit(`matchSuccess`, {
       roomID
     });
   }
-
-  ctx.socket.on('cancel:match', () => {
-    queue.players--;
-  });
 
   ctx.socket.on('disconnect', () => {
     queue.players--;
