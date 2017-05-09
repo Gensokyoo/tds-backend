@@ -10,21 +10,26 @@
     "babel-node": "babel-node"
   },
   "devDependencies": {
+    "@types/jest": "^19.2.3",
     "@types/node": "^7.0.12",
+    "@types/socket.io-client": "^1.4.29",
     "babel-cli": "^6.18.0",
     "babel-preset-env": "^1.1.6",
-    "jest": "^18.1.0",
+    "jest": "^20.0.0",
     "nodemon": "^1.11.0",
+    "tslint": "^5.2.0",
     "typescript": "^2.2.2"
   },
   "dependencies": {
     "@types/koa": "^2.0.39",
     "@types/shortid": "^0.0.29",
     "@types/socket.io": "^1.4.29",
+    "axios": "^0.16.1",
     "koa": "^2.2.0",
     "koa-router": "^7.1.1",
     "koa-socket": "^4.4.0",
     "shortid": "^2.2.8",
-    "socket.io": "^1.7.3"
+    "socket.io": "^1.7.3",
+    "socket.io-client": "^1.7.4"
   }
 }

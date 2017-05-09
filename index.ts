@@ -1,5 +1,5 @@
 import * as Koa from 'koa';
-import {Context} from 'koa';
+import { Context } from 'koa';
 import * as IO from 'koa-socket';
 import * as shortid from 'shortid';
 
@@ -14,7 +14,7 @@ class Queue {
 
 class Room {
   socket: SocketIO.Namespace;
-  players: number;
+  players: Map<string, Player>;
 
   constructor(room: Room) {
     Object.assign(this, room);
@@ -33,9 +33,6 @@ class Player {
 
 const app = new Koa();
 const io = new IO();
-// const lobbySocket = new IO({
-//   namespace: 'lobby'
-// });
 const queueSocket = new IO('queue');
 
 io.attach(app);
@@ -53,37 +50,56 @@ const queue = new Queue({
 
 for (let i = 0; i < MAX; i++) {
   let room = new IO(`room:${i}`);
+  let roomPlayers = new Map<string, Player>();
   room.attach(app);
 
   room.on('connection', (ctx: Context, data) => {
-    let currentPlayer = '';
-
-    rooms[i].players++;
-
+    let currentPlayer = new Player({
+      id: null,
+      x: 0,
+      z: 0
+    });
 
     ctx.socket.emit('joinRoom');
     ctx.socket.on('joinRoom', data => {
-      console.log(data);
-      currentPlayer = data;
-      console.log(`some one connected room ${i}. There are ${rooms[i].players} people in the room`);
+      currentPlayer.id = data;
+      roomPlayers.set(currentPlayer.id, currentPlayer);
+      console.log(`${data} connected room ${i}. There are ${rooms[i].players.size} people in the room`);
+
+      for (let playerId of roomPlayers.keys()) {
+        if (playerId !== currentPlayer.id) {
+          ctx.socket.emit('spawn', players.get(playerId));
+        }
+      }
+
+      room.broadcast('spawn', { id: currentPlayer.id });
+      room.broadcast('requestPosition');
     });
 
-    // room.broadcast("spawn", {id: })
+    ctx.socket.on('sync', data => {
+      currentPlayer.id = currentPlayer.id;
+      currentPlayer.x = data.x;
+      currentPlayer.z = data.z;
+
+      room.broadcast('sync', currentPlayer);
+      console.log(`sync ${JSON.stringify(currentPlayer)}`);
+    });
+
     ctx.socket.emit('requestPosition');
 
     ctx.socket.on('updatePosition', data => {
-      console.log(data);
-      room.broadcast('move', data);
+      room.broadcast('updatePosition', data);
     });
 
 
     ctx.socket.on('disconnect', () => {
-      rooms[i].players--;
+      roomPlayers.delete(currentPlayer.id);
+      room.broadcast('disconnect', { id: currentPlayer });
     });
   });
 
   rooms[i] = new Room({
-    players: 0,
+    players: roomPlayers,
     socket: room
   });
 
@@ -104,6 +120,10 @@ io.on('connection', (ctx, data) => {
   console.log(`${thisPlayerId} connected lobby . There are ${players.size} people in the lobby`);
 
   ctx.socket.emit('connectSuccess', player);
+
+  ctx.socket.on('test', data => {
+    console.log(data);
+  });
 
   ctx.socket.on('disconnect', () => {
     console.log(`player disconnect lobby: ${thisPlayerId}`);
@@ -134,7 +154,7 @@ queue.socket.on('connection', (ctx, data) => {
 
 function getFreeRoom() {
   for (let n = 0; n < MAX; n++) {
-    if (rooms[n].players < 10) {
+    if (rooms[n].players.size < 10) {
       return n;
     }
   }
