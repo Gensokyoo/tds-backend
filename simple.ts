@@ -43,6 +43,12 @@ io.on('connect', socket => {
     socket.broadcast.emit('updatePosition', data);
   });
 
+  socket.on('shoot', data => {
+    data.id = thisPlayerId;
+
+    socket.broadcast.emit('shoot', data);
+  });
+
   socket.on('disconnect', () => {
     console.log(`player disconnect: ${thisPlayerId}`);
 
