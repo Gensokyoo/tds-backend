@@ -2,6 +2,7 @@ import * as socketio from 'socket.io';
 import * as shortid from 'shortid';
 
 let players = new Map<string, object>();
+let enemys = new Map<string, object>();
 let hostPlayer = null;
 
 
@@ -30,6 +31,10 @@ io.on('connect', socket => {
     }
   }
 
+  for (let enemyId of enemys.keys()) {
+    socket.emit('spawnEnemy', enemys.get(enemyId));
+  }
+
   console.log(`${thisPlayerId} connect`);
 
   socket.on('sync', (data) => {
@@ -45,18 +50,40 @@ io.on('connect', socket => {
     console.log(`sync ${JSON.stringify(data)}`);
   });
 
+  socket.on('die', data => {
+    console.log('die');
+
+    data.id = thisPlayerId;
+    socket.broadcast.emit('sync', data);
+  });
+
   socket.on('spawnEnemy', data => {
+    console.log('spawnEnemy');
+
     data.id = shortid.generate();
+
+    enemys.set(data.id, data);
     socket.broadcast.emit('spawnEnemy', data);
   });
 
+  socket.on('enemyDead', data => {
+    console.log('enemyDead');
+    enemys.delete(data.id);
+
+    socket.broadcast.emit('enemyDead', data);
+  });
+
   socket.on('updatePosition', (data) => {
+    console.log('updatePosition');
+
     data.id = thisPlayerId;
 
     socket.broadcast.emit('updatePosition', data);
   });
 
   socket.on('shoot', data => {
+    console.log('shoot');
+
     data.id = thisPlayerId;
 
     socket.broadcast.emit('shoot', data);
