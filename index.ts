@@ -51,6 +51,7 @@ const queue = new Queue({
 for (let i = 0; i < MAX; i++) {
   let room = new IO(`room:${i}`);
   let roomPlayers = new Map<string, Player>();
+  let hostPlayer = null;
   room.attach(app);
 
   room.on('connection', (ctx: Context, data) => {
@@ -64,6 +65,7 @@ for (let i = 0; i < MAX; i++) {
     ctx.socket.on('joinRoom', data => {
       currentPlayer.id = data;
       roomPlayers.set(currentPlayer.id, currentPlayer);
+
       console.log(`${data} connected room ${i}. There are ${rooms[i].players.size} people in the room`);
 
       for (let playerId of roomPlayers.keys()) {
@@ -81,8 +83,26 @@ for (let i = 0; i < MAX; i++) {
       currentPlayer.x = data.x;
       currentPlayer.z = data.z;
 
+      console.log(hostPlayer, '123123123');
+      if (!hostPlayer) {
+        console.log('set hostplayer' + currentPlayer.id);
+        hostPlayer = currentPlayer.id;
+        ctx.socket.emit('host');
+      }
+
       room.broadcast('sync', currentPlayer);
       console.log(`sync ${JSON.stringify(currentPlayer)}`);
+    });
+
+    ctx.socket.on('syncEnemy', data => {
+
+      room.broadcast('syncEnemy', data);
+    });
+
+    ctx.socket.on('spawnEnemy', data => {
+      if (hostPlayer == currentPlayer.id) {
+        room.broadcast('sync', data);
+      }
     });
 
     ctx.socket.emit('requestPosition');

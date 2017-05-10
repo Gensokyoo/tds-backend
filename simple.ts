@@ -2,6 +2,8 @@ import * as socketio from 'socket.io';
 import * as shortid from 'shortid';
 
 let players = new Map<string, object>();
+let hostPlayer = null;
+
 
 const io = socketio(process.env.PORT || 3000);
 
@@ -11,8 +13,10 @@ io.on('connect', socket => {
 
   const player = {
     id: thisPlayerId,
-    x: 0,
-    z: 0
+    px: 0,
+    pz: 0,
+    rx: 0,
+    rz: 0
   };
 
   players.set(thisPlayerId, player);
@@ -29,12 +33,21 @@ io.on('connect', socket => {
   console.log(`${thisPlayerId} connect`);
 
   socket.on('sync', (data) => {
-    data.id = thisPlayerId;
-    player.x = data.x;
-    player.z = data.z;
+    Object.assign(player, data);
+    if (!players.has(hostPlayer)) {
+      console.log('set hostplayer ' + thisPlayerId);
+      hostPlayer = thisPlayerId;
+      socket.emit('host');
+    }
 
+    data.id = thisPlayerId;
     socket.broadcast.emit('sync', data);
     console.log(`sync ${JSON.stringify(data)}`);
+  });
+
+  socket.on('spawnEnemy', data => {
+    data.id = shortid.generate();
+    socket.broadcast.emit('spawnEnemy', data);
   });
 
   socket.on('updatePosition', (data) => {
