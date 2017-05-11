@@ -1,5 +1,5 @@
 import * as socketio from 'socket.io';
-import * as shortid from 'shortid';
+// import * as shortid from 'shortid';
 
 let players = new Map<string, object>();
 let enemys = new Map<string, object>();

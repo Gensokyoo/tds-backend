@@ -83,7 +83,6 @@ for (let i = 0; i < MAX; i++) {
       currentPlayer.x = data.x;
       currentPlayer.z = data.z;
 
-      console.log(hostPlayer, '123123123');
       if (!hostPlayer) {
         console.log('set hostplayer' + currentPlayer.id);
         hostPlayer = currentPlayer.id;
