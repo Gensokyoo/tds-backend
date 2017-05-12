@@ -2,6 +2,7 @@ import * as socketio from 'socket.io';
 
 
 let players = new Map<string, object>();
+let deadPlsyers = new Set;
 let enemys = new Map<string, object>();
 let hostPlayer = null;
 let isHost = null;
@@ -27,6 +28,10 @@ io.on('connect', socket => {
     socket.broadcast.emit('spawnPlayer', data);
     for (let playerId of players.keys()) {
       socket.emit('spawnPlayer', players.get(playerId));
+    }
+
+    for (let enemyID of enemys.keys()) {
+      socket.emit('spawnEnemy', enemys.get(enemyID));
     }
   });
 
@@ -67,20 +72,27 @@ io.on('connect', socket => {
     console.log('spawnEnemy');
     enemys.set(data.id, data);
     // pools.set(data.id, data);
-    io.emit('spawnEnemy', data);
+    socket.broadcast.emit('spawnEnemy', data);
+  });
+
+  socket.on('enemySync', data => {
+    console.log('enemySync');
+    enemys.set(data.id, data);
+    // pools.set(data.id, data);
+    socket.broadcast.emit('enemySync', data);
   });
 
   socket.on('enemyDie', data => {
     console.log('die');
 
 
-    io.emit('enemyDie', data);
+    socket.broadcast.emit('enemyDie', data);
   });
 
   socket.on('enemyTakeDamage', data => {
     console.log('enemyTakeDamage');
 
-    io.emit('enemyTakeDamage', data);
+    socket.broadcast.emit('enemyTakeDamage', data);
   });
 
   socket.on('disconnect', data => {
